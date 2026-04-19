@@ -1,0 +1,16 @@
+[
+  {"id":"KB-001","topic":"return_policy_general","content":"ShopWave offers a standard 30-day return window from the delivery date for most products. Items must be in original condition and packaging. Some product categories have different return windows."},
+  {"id":"KB-002","topic":"return_policy_electronics","content":"Electronics have a 30-day return window. High-value electronics (over $200) such as smart watches have a 15-day return window. Seals must be unbroken unless the item is defective."},
+  {"id":"KB-003","topic":"return_policy_accessories","content":"Electronics accessories such as laptop stands have an extended 60-day return window. Items must be in original condition."},
+  {"id":"KB-004","topic":"return_policy_footwear","content":"Footwear must be unworn and in original packaging for returns. Items used outdoors are not eligible for return."},
+  {"id":"KB-005","topic":"return_policy_sports","content":"Sports and hygiene items like yoga mats are non-returnable once used. Hygiene policy strictly applies."},
+  {"id":"KB-006","topic":"refund_process","content":"Approved refunds are processed within 1-2 business days. Funds appear in your account within 5-7 business days depending on your bank or payment provider."},
+  {"id":"KB-007","topic":"exchange_process","content":"ShopWave offers product exchanges for wrong items delivered or size mismatches. Contact support with your order ID to initiate an exchange. Exchanges are subject to stock availability."},
+  {"id":"KB-008","topic":"cancellation_policy","content":"Orders in 'processing' status can be cancelled free of charge at any time before shipment. Once an order is shipped, it cannot be cancelled and must go through the return process."},
+  {"id":"KB-009","topic":"warranty_policy","content":"Products with active warranties can be serviced or replaced for manufacturing defects. Warranty does not cover user damage, accidental damage, or normal wear and tear. Contact support with proof of purchase."},
+  {"id":"KB-010","topic":"damaged_items","content":"Items damaged on arrival are eligible for a full refund or replacement without requiring the item to be returned. Customers should report damage within 48 hours of delivery and may be asked to provide photo evidence."},
+  {"id":"KB-011","topic":"vip_policy","content":"VIP customers may receive extended return windows and other accommodations at ShopWave's discretion. These exceptions are pre-approved and noted in the customer account."},
+  {"id":"KB-012","topic":"registered_device_policy","content":"Electronic devices that have been registered online (activated) are non-returnable per our policy, regardless of the return window status. This applies to speakers, smart devices, and connected electronics."},
+  {"id":"KB-013","topic":"premium_membership","content":"ShopWave offers Standard, Premium, and VIP membership tiers. Premium members receive priority support and extended warranty coverage. There is no 'instant refund without questions' policy for any tier. All refunds follow standard eligibility checks."},
+  {"id":"KB-014","topic":"threatening_customers","content":"ShopWave takes threatening communications seriously. Agents should remain professional, document the interaction, and escalate to the senior support team. Legal threats do not bypass standard policy checks."}
+]

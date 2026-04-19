@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  shopwave-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: shopwave-agent
+    ports:
+      - "8000:8000"
+    environment:
+      # Pass credentials via environment (never hardcoded)
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
+      - MAX_WORKERS=5
+      - MAX_REACT_STEPS=10
+      - LOG_LEVEL=INFO
+    volumes:
+      # Mount audit log output to host
+      - ./audit_log.json:/app/audit_log.json
+      - ./agent.log:/app/agent.log
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # CLI-only mode (override command)
+  # docker-compose run shopwave-agent-cli
+  shopwave-agent-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: shopwave-agent-cli
+    environment:
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME}
+      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
+      - MAX_WORKERS=5
+    volumes:
+      - ./audit_log.json:/app/audit_log.json
+    command: ["python", "main.py"]
+    profiles:
+      - cli

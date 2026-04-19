@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShopWave Agent — Live Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1f2937;
+    --border: #374151;
+    --text: #f9fafb;
+    --text2: #9ca3af;
+    --text3: #6b7280;
+    --blue: #3b82f6;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #8b5cf6;
+    --teal: #14b8a6;
+    --pink: #ec4899;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .header-title span { color: var(--blue); }
+  .header-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text3);
+    transition: background 0.3s;
+  }
+  .status-dot.running { background: var(--green); animation: pulse 1s infinite; }
+  .status-dot.done { background: var(--blue); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* LAYOUT */
+  .main { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .stat-card.total .stat-value { color: var(--text); }
+  .stat-card.resolved .stat-value { color: var(--green); }
+  .stat-card.escalated .stat-value { color: var(--amber); }
+  .stat-card.failed .stat-value { color: var(--red); }
+  .stat-card.running-now .stat-value { color: var(--blue); }
+  .stat-card.tool-calls .stat-value { color: var(--purple); }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .progress-bar-bg {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--teal));
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* TWO COLUMN */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* TICKET FEED */
+  .feed-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    max-height: 420px;
+  }
+  .feed-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text2);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .feed-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px;
+  }
+
+  .ticket-item {
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--border);
+    background: var(--surface2);
+    font-size: 11px;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .ticket-item.processing { border-left-color: var(--blue); }
+  .ticket-item.resolved { border-left-color: var(--green); }
+  .ticket-item.escalated { border-left-color: var(--amber); }
+  .ticket-item.dead_letter { border-left-color: var(--red); }
+
+  .ticket-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
+  }
+  .ticket-id { font-weight: 700; font-size: 11px; }
+  .ticket-badge {
+    font-size: 8px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-processing { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .badge-resolved { background: rgba(16,185,129,0.2); color: var(--green); }
+  .badge-escalated { background: rgba(245,158,11,0.2); color: var(--amber); }
+  .badge-dead_letter { background: rgba(239,68,68,0.2); color: var(--red); }
+  .badge-auto_resolved { background: rgba(16,185,129,0.2); color: var(--green); }
+  .badge-informational { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .badge-flagged { background: rgba(239,68,68,0.2); color: var(--red); }
+  .badge-clarification_requested { background: rgba(139,92,246,0.2); color: var(--purple); }
+  .badge-cancelled { background: rgba(20,184,166,0.2); color: var(--teal); }
+
+  .ticket-meta { color: var(--text3); font-size: 9px; }
+  .ticket-detail { color: var(--text2); font-size: 10px; margin-top: 2px; }
+
+  /* WORKER STATUS */
+  .workers-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    padding: 12px;
+  }
+  .worker-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 8px;
+    text-align: center;
+    background: var(--surface2);
+    transition: border-color 0.2s;
+  }
+  .worker-card.active { border-color: var(--blue); }
+  .worker-icon { font-size: 18px; margin-bottom: 4px; }
+  .worker-name { font-size: 10px; font-weight: 600; color: var(--text2); }
+  .worker-ticket { font-size: 9px; color: var(--text3); margin-top: 2px; }
+
+  /* LOG */
+  .log-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+  .log-body {
+    font-size: 10px;
+    color: var(--text2);
+    padding: 10px 12px;
+    overflow-y: auto;
+    flex: 1;
+    font-family: monospace;
+    line-height: 1.6;
+  }
+  .log-line { margin-bottom: 2px; }
+  .log-line.info { color: var(--text2); }
+  .log-line.success { color: var(--green); }
+  .log-line.warn { color: var(--amber); }
+  .log-line.error { color: var(--red); }
+  .log-ts { color: var(--text3); margin-right: 6px; }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .btn {
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-green { background: var(--green); color: white; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">🛒 <span>ShopWave</span> Autonomous Support Agent</div>
+  <div class="header-badge">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Idle — ready to run</span>
+    <span style="color:var(--text3);margin-left:8px;">KSOLVES · Agentic AI Hackathon 2026</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <button class="btn btn-primary" id="runBtn" onclick="startRun()">▶ Run Agent (20 tickets)</button>
+    <button class="btn btn-secondary" onclick="viewAuditLog()">📋 View Audit Log</button>
+    <button class="btn btn-secondary" onclick="resetDashboard()">↺ Reset</button>
+    <span id="timerDisplay" style="font-size:11px;color:var(--text3);margin-left:8px;"></span>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card total"><div class="stat-value" id="statTotal">20</div><div class="stat-label">Total</div></div>
+    <div class="stat-card running-now"><div class="stat-value" id="statProcessing">0</div><div class="stat-label">In Flight</div></div>
+    <div class="stat-card resolved"><div class="stat-value" id="statResolved">0</div><div class="stat-label">Resolved</div></div>
+    <div class="stat-card escalated"><div class="stat-value" id="statEscalated">0</div><div class="stat-label">Escalated</div></div>
+    <div class="stat-card failed"><div class="stat-value" id="statFailed">0</div><div class="stat-label">Dead Letter</div></div>
+    <div class="stat-card tool-calls"><div class="stat-value" id="statTools">0</div><div class="stat-label">Tool Calls</div></div>
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="progressLabel">Waiting to start...</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressBar"></div>
+    </div>
+  </div>
+
+  <!-- WORKERS -->
+  <div class="feed-card" style="max-height:120px;">
+    <div class="feed-header">⚡ Workers <span style="color:var(--text3);font-size:9px;">5 concurrent workers</span></div>
+    <div class="workers-grid" id="workersGrid">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+
+  <!-- TWO COLUMN -->
+  <div class="two-col">
+    <!-- TICKET FEED -->
+    <div class="feed-card">
+      <div class="feed-header">
+        🎫 Live Ticket Feed
+        <span id="feedCount" style="color:var(--text3);font-size:9px;">0 processed</span>
+      </div>
+      <div class="feed-body" id="ticketFeed"></div>
+    </div>
+
+    <!-- OUTCOME BREAKDOWN -->
+    <div class="feed-card">
+      <div class="feed-header">📊 Outcomes &amp; Decisions</div>
+      <div class="feed-body" id="outcomeFeed"></div>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="log-card">
+    <div class="feed-header">📟 Event Log</div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let eventSource = null;
+  let startTime = null;
+  let timerInterval = null;
+  let stats = { total: 20, processing: 0, resolved: 0, escalated: 0, dead_letter: 0, tools: 0 };
+  let workerStatus = {};
+
+  const WORKER_IDS = ['W01','W02','W03','W04','W05'];
+
+  // ── Init workers ───────────────────────────────────────────────────────────
+  function initWorkers() {
+    const grid = document.getElementById('workersGrid');
+    grid.innerHTML = WORKER_IDS.map(id => `
+      <div class="worker-card" id="wcard-${id}">
+        <div class="worker-icon">🤖</div>
+        <div class="worker-name">${id}</div>
+        <div class="worker-ticket" id="wtkt-${id}">idle</div>
+      </div>
+    `).join('');
+  }
+  initWorkers();
+
+  // ── Start run ──────────────────────────────────────────────────────────────
+  async function startRun() {
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('statusDot').className = 'status-dot running';
+    document.getElementById('statusText').textContent = 'Agent running...';
+    resetStats();
+
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 100);
+
+    try {
+      const resp = await fetch('/run', { method: 'POST' });
+      const data = await resp.json();
+      if (!resp.ok) {
+        addLog(`Error: ${data.detail}`, 'error');
+        document.getElementById('runBtn').disabled = false;
+        return;
+      }
+      addLog(`Batch started — ${data.message}`, 'success');
+      connectSSE();
+    } catch(e) {
+      addLog(`Failed to start: ${e.message}`, 'error');
+      document.getElementById('runBtn').disabled = false;
+    }
+  }
+
+  // ── SSE connection ─────────────────────────────────────────────────────────
+  function connectSSE() {
+    if (eventSource) eventSource.close();
+    eventSource = new EventSource('/stream');
+
+    eventSource.onmessage = (e) => {
+      const event = JSON.parse(e.data);
+      handleEvent(event);
+    };
+
+    eventSource.onerror = () => {
+      addLog('SSE connection error', 'error');
+    };
+  }
+
+  // ── Handle events ──────────────────────────────────────────────────────────
+  function handleEvent(event) {
+    const type = event.event;
+
+    if (type === 'connected') {
+      addLog('Dashboard connected to agent stream', 'info');
+
+    } else if (type === 'batch_started') {
+      addLog(`Batch started: ${event.total_tickets} tickets, ${event.workers} workers`, 'success');
+
+    } else if (type === 'ticket_started') {
+      stats.processing++;
+      updateWorker(event.worker_id, event.ticket_id, true);
+      updateStats();
+      addTicketToFeed(event.ticket_id, 'processing', event.worker_id, null);
+      addLog(`[${event.worker_id}] Started ${event.ticket_id}`, 'info');
+
+    } else if (type === 'ticket_completed') {
+      stats.processing = Math.max(0, stats.processing - 1);
+      if (event.status === 'resolved' || event.status === 'escalated') {
+        if (event.outcome === 'escalated' || event.outcome === 'flagged') stats.escalated++;
+        else stats.resolved++;
+      } else {
+        stats.resolved++;
+      }
+      stats.tools += event.tool_calls || 0;
+      updateWorker(event.worker_id, null, false);
+      updateStats();
+      updateProgressBar(event.stats);
+      updateTicketInFeed(event.ticket_id, event.status, event.outcome, event.confidence, event.tool_calls, event.duration_ms);
+      addOutcomeRow(event.ticket_id, event.outcome, event.confidence, event.tool_calls);
+      addLog(
+        `[${event.worker_id}] ✓ ${event.ticket_id} → ${event.outcome} (${event.tool_calls} tools, ${Math.round(event.duration_ms)}ms)`,
+        event.outcome === 'escalated' || event.outcome === 'flagged' ? 'warn' : 'success'
+      );
+
+    } else if (type === 'ticket_dead_letter') {
+      stats.dead_letter++;
+      stats.processing = Math.max(0, stats.processing - 1);
+      updateWorker(event.worker_id, null, false);
+      updateStats();
+      addTicketToFeed(event.ticket_id, 'dead_letter', event.worker_id, null);
+      addLog(`💀 ${event.ticket_id} → dead letter: ${event.error}`, 'error');
+
+    } else if (type === 'batch_completed') {
+      clearInterval(timerInterval);
+      document.getElementById('statusDot').className = 'status-dot done';
+      document.getElementById('statusText').textContent = 'Run complete';
+      document.getElementById('runBtn').disabled = false;
+      document.getElementById('progressBar').style.width = '100%';
+      document.getElementById('progressLabel').textContent = 'All tickets processed';
+      document.getElementById('progressPct').textContent = '100%';
+      const s = event.summary;
+      addLog(`✅ COMPLETE — ${s.processed}/${s.total_tickets} processed in ${Math.round(s.total_duration_ms)}ms`, 'success');
+      if (eventSource) eventSource.close();
+
+    } else if (type === 'heartbeat') {
+      // silent
+    } else if (type === 'error') {
+      addLog(`Error: ${event.error}`, 'error');
+    }
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+  function updateWorker(workerId, ticketId, active) {
+    const card = document.getElementById(`wcard-${workerId}`);
+    const tkt = document.getElementById(`wtkt-${workerId}`);
+    if (!card) return;
+    card.className = active ? 'worker-card active' : 'worker-card';
+    tkt.textContent = ticketId || 'idle';
+  }
+
+  function updateStats() {
+    document.getElementById('statProcessing').textContent = stats.processing;
+    document.getElementById('statResolved').textContent = stats.resolved;
+    document.getElementById('statEscalated').textContent = stats.escalated;
+    document.getElementById('statFailed').textContent = stats.dead_letter;
+    document.getElementById('statTools').textContent = stats.tools;
+  }
+
+  function updateProgressBar(s) {
+    if (!s) return;
+    const pct = Math.round((s.processed / s.total) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressLabel').textContent =
+      `${s.processed}/${s.total} tickets processed`;
+    document.getElementById('feedCount').textContent = `${s.processed} processed`;
+  }
+
+  let ticketCards = {};
+
+  function addTicketToFeed(ticketId, status, workerId, outcome) {
+    const feed = document.getElementById('ticketFeed');
+    const div = document.createElement('div');
+    div.className = `ticket-item ${status}`;
+    div.id = `tkt-${ticketId}`;
+    div.innerHTML = `
+      <div class="ticket-top">
+        <span class="ticket-id">${ticketId}</span>
+        <span class="ticket-badge badge-${status}">${status}</span>
+      </div>
+      <div class="ticket-meta">${workerId} · ${new Date().toLocaleTimeString()}</div>
+    `;
+    feed.prepend(div);
+    ticketCards[ticketId] = div;
+  }
+
+  function updateTicketInFeed(ticketId, status, outcome, confidence, toolCalls, durationMs) {
+    const div = ticketCards[ticketId];
+    if (!div) { addTicketToFeed(ticketId, status, 'done', outcome); return; }
+
+    const displayStatus = outcome || status;
+    div.className = `ticket-item ${displayStatus === 'escalated' || displayStatus === 'flagged' ? 'escalated' : 'resolved'}`;
+    div.innerHTML = `
+      <div class="ticket-top">
+        <span class="ticket-id">${ticketId}</span>
+        <span class="ticket-badge badge-${displayStatus}">${displayStatus}</span>
+      </div>
+      <div class="ticket-detail">🔧 ${toolCalls} tool calls · ⚡ ${Math.round(durationMs)}ms · 🎯 ${(confidence*100).toFixed(0)}%</div>
+    `;
+  }
+
+  function addOutcomeRow(ticketId, outcome, confidence, toolCalls) {
+    const feed = document.getElementById('outcomeFeed');
+    const icons = {
+      auto_resolved: '✅', informational: 'ℹ️', escalated: '⬆️',
+      flagged: '🚩', clarification_requested: '❓', cancelled: '🚫'
+    };
+    const div = document.createElement('div');
+    div.className = 'ticket-item resolved';
+    div.style.borderLeftColor = outcome === 'escalated' || outcome === 'flagged' ? 'var(--amber)' : 'var(--green)';
+    div.innerHTML = `
+      <div class="ticket-top">
+        <span class="ticket-id">${icons[outcome] || '•'} ${ticketId}</span>
+        <span style="font-size:9px;color:var(--text3)">${(confidence*100).toFixed(0)}% confident</span>
+      </div>
+      <div class="ticket-meta">${outcome} · ${toolCalls} tool calls</div>
+    `;
+    feed.prepend(div);
+  }
+
+  function addLog(msg, level = 'info') {
+    const body = document.getElementById('logBody');
+    const ts = new Date().toLocaleTimeString();
+    const div = document.createElement('div');
+    div.className = `log-line ${level}`;
+    div.innerHTML = `<span class="log-ts">${ts}</span>${msg}`;
+    body.prepend(div);
+    // Keep only last 100 entries
+    while (body.children.length > 100) body.removeChild(body.lastChild);
+  }
+
+  function updateTimer() {
+    if (!startTime) return;
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    document.getElementById('timerDisplay').textContent = `⏱ ${elapsed}s elapsed`;
+  }
+
+  function resetStats() {
+    stats = { total: 20, processing: 0, resolved: 0, escalated: 0, dead_letter: 0, tools: 0 };
+    ticketCards = {};
+    updateStats();
+    document.getElementById('ticketFeed').innerHTML = '';
+    document.getElementById('outcomeFeed').innerHTML = '';
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressPct').textContent = '0%';
+    document.getElementById('progressLabel').textContent = 'Processing...';
+  }
+
+  function resetDashboard() {
+    if (eventSource) eventSource.close();
+    clearInterval(timerInterval);
+    document.getElementById('statusDot').className = 'status-dot';
+    document.getElementById('statusText').textContent = 'Idle — ready to run';
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('timerDisplay').textContent = '';
+    document.getElementById('logBody').innerHTML = '';
+    resetStats();
+    initWorkers();
+    addLog('Dashboard reset', 'info');
+  }
+
+  function viewAuditLog() {
+    window.open('/results', '_blank');
+  }
+
+  // Check if already running on page load
+  fetch('/status').then(r => r.json()).then(data => {
+    if (data.is_running) {
+      document.getElementById('statusDot').className = 'status-dot running';
+      document.getElementById('statusText').textContent = 'Agent already running...';
+      document.getElementById('runBtn').disabled = true;
+      connectSSE();
+    }
+    if (data.summary) {
+      addLog(`Previous run: ${data.summary.processed} tickets processed`, 'info');
+    }
+  }).catch(() => addLog('Could not reach server', 'warn'));
+
+  addLog('Dashboard initialized. Click "Run Agent" to start.', 'info');
+</script>
+</body>
+</html>
